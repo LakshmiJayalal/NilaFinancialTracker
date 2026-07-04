@@ -227,6 +227,8 @@ button{cursor:pointer;border:none;background:none}
       <div class="setup-title">🔗 Connect to Google Sheets</div>
       <label class="lc-label">Apps Script Web App URL</label>
       <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <label class="lc-label" style="margin-top:10px">Family Secret Key</label>
+      <input type="text" id="apiKeyInput" placeholder="Enter your family's secret key">
       <button class="setup-btn" onclick="saveApiUrl()">Connect</button>
     </div>
 
@@ -362,6 +364,10 @@ button{cursor:pointer;border:none;background:none}
           <button class="si-delete" onclick="changeApiUrl()">Edit</button>
         </div>
         <div class="settings-item">
+          <div class="si-left"><span class="si-icon">🔑</span><div><div class="si-label">Secret Key</div><div class="si-sub" id="apiKeyDisplay">••••</div></div></div>
+          <button class="si-delete" onclick="changeApiKey()">Edit</button>
+        </div>
+        <div class="settings-item">
           <div class="si-left"><span class="si-icon">🔄</span><div><div class="si-label">Refresh Data</div><div class="si-sub">Re-sync from Google Sheets</div></div></div>
           <button class="si-delete" onclick="refreshAll()" style="color:var(--blue)">Sync</button>
         </div>
@@ -393,6 +399,7 @@ button{cursor:pointer;border:none;background:none}
 // STATE
 // ============================================================
 let API_URL = localStorage.getItem('ft_api_url') || '';
+let API_KEY = localStorage.getItem('ft_api_key') || '';
 let CURRENCY = localStorage.getItem('ft_currency') || '₹';
 let currentUser = null;
 let selectedMember = null;
@@ -415,12 +422,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function boot() {
   const status = document.getElementById('connStatus');
-  if (!API_URL) {
-    // No URL saved — show setup
-    status.innerHTML = '<span class="dot red"></span><span>Not connected — add your Google Sheets URL below</span>';
+  if (!API_URL || !API_KEY) {
+    // No URL or key saved — show setup
+    status.innerHTML = '<span class="dot red"></span><span>Not connected — add your details below</span>';
     document.getElementById('setupSection').style.display = '';
     document.getElementById('setupToggle').style.display = 'none';
     document.getElementById('loginBtn').disabled = true;
+    if (API_URL) document.getElementById('apiUrlInput').value = API_URL;
     return;
   }
 
@@ -451,9 +459,13 @@ async function boot() {
 
 function saveApiUrl() {
   const url = document.getElementById('apiUrlInput').value.trim();
+  const key = document.getElementById('apiKeyInput').value.trim();
   if (!url) { toast('Paste your Apps Script URL', 'err'); return; }
+  if (!key) { toast('Enter your family secret key', 'err'); return; }
   API_URL = url;
+  API_KEY = key;
   localStorage.setItem('ft_api_url', url);
+  localStorage.setItem('ft_api_key', key);
   boot();
 }
 
@@ -461,7 +473,10 @@ function toggleSetup() {
   const sec = document.getElementById('setupSection');
   const showing = sec.style.display !== 'none';
   sec.style.display = showing ? 'none' : '';
-  if (!showing) document.getElementById('apiUrlInput').value = API_URL;
+  if (!showing) {
+    document.getElementById('apiUrlInput').value = API_URL;
+    document.getElementById('apiKeyInput').value = API_KEY;
+  }
 }
 
 function changeApiUrl() {
@@ -475,6 +490,16 @@ function changeApiUrl() {
   }
 }
 
+function changeApiKey() {
+  const key = prompt('Enter new secret key:', API_KEY);
+  if (key !== null) {
+    API_KEY = key.trim();
+    localStorage.setItem('ft_api_key', API_KEY);
+    toast('Secret key updated — reloading...', 'ok');
+    setTimeout(() => location.reload(), 800);
+  }
+}
+
 // ============================================================
 // API HELPER
 // ============================================================
@@ -482,14 +507,20 @@ async function api(method, action, body) {
   const opts = { method, headers: { 'Content-Type': 'text/plain' } };
   let url = API_URL;
   if (method === 'GET') {
-    const params = new URLSearchParams({ action, ...(body || {}) });
+    const params = new URLSearchParams({ action, key: API_KEY, ...(body || {}) });
     url += '?' + params.toString();
   } else {
-    opts.body = JSON.stringify({ action, ...body });
+    opts.body = JSON.stringify({ action, key: API_KEY, ...body });
   }
   const resp = await fetch(url, opts);
   const text = await resp.text();
-  try { return JSON.parse(text); } catch { throw new Error(text); }
+  try {
+    const json = JSON.parse(text);
+    if (json.error && json.error.includes('Unauthorized')) {
+      toast('Invalid API key. Check Settings.', 'err');
+    }
+    return json;
+  } catch { throw new Error(text); }
 }
 
 // ============================================================
@@ -576,18 +607,19 @@ async function doLogin() {
   document.getElementById('loginError').textContent = '';
 
   try {
-    // Client-side check (PIN is fetched from sheet during init)
-    if (enteredPin === String(selectedMember.pin)) {
-      currentUser = { name: selectedMember.name, color: selectedMember.color };
+    // Server-side PIN validation — PIN never stored in browser
+    const res = await api('POST', 'login', { name: selectedMember.name, pin: enteredPin });
+    if (res.ok) {
+      currentUser = { name: res.member.name, color: res.member.color };
       localStorage.setItem('ft_user', JSON.stringify(currentUser));
       showApp();
     } else {
-      document.getElementById('loginError').textContent = 'Wrong PIN. Try again.';
+      document.getElementById('loginError').textContent = res.error || 'Wrong PIN. Try again.';
       clearPinInputs();
       document.getElementById('pin1').focus();
     }
   } catch (e) {
-    document.getElementById('loginError').textContent = 'Login failed. Try again.';
+    document.getElementById('loginError').textContent = 'Connection error. Try again.';
     clearPinInputs();
   } finally {
     btn.disabled = false;
