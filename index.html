@@ -41,10 +41,11 @@ button{cursor:pointer;border:none;background:none}
 .badge-expense{background:var(--red-light);color:var(--red)}
 .spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:var(--radius-sm);font-size:.85rem;font-weight:500;z-index:9999;animation:toastIn .3s ease}
-.toast-ok{background:var(--green);color:#fff}
-.toast-err{background:var(--red);color:#fff}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.9);padding:16px 28px;border-radius:16px;font-size:.95rem;font-weight:600;z-index:9999;pointer-events:none;animation:toastPop .35s cubic-bezier(.175,.885,.32,1.275) forwards;opacity:0;text-align:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.toast-ok{background:rgba(22,163,74,.85);color:#fff;box-shadow:0 8px 32px rgba(22,163,74,.3)}
+.toast-err{background:rgba(220,38,38,.85);color:#fff;box-shadow:0 8px 32px rgba(220,38,38,.3)}
+@keyframes toastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes toastOut{to{opacity:0;transform:translate(-50%,-60%) scale(.8)}}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .empty-state .emoji{font-size:2.5rem;margin-bottom:8px}
 
@@ -149,9 +150,25 @@ button{cursor:pointer;border:none;background:none}
 .btn-outline:active{background:var(--bg)}
 
 /* ---- QUICK ADD ---- */
-.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px}
-.quick-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);transition:.15s;position:relative}
-.quick-btn:active{transform:scale(.95);box-shadow:var(--shadow-md)}
+.quick-form{padding:16px;background:var(--surface);margin:12px 16px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.quick-form-row{display:flex;gap:8px;align-items:flex-end}
+.quick-form-row .form-group{flex:1;margin-bottom:0}
+.quick-form-row .form-group.amt{max-width:110px}
+.quick-form-row .form-group input{padding:10px 12px;font-size:1.1rem;font-weight:600}
+.quick-type-pills{display:flex;gap:6px;margin-bottom:12px}
+.quick-type-pills button{flex:1;padding:8px;border-radius:6px;font-weight:600;font-size:.8rem;border:1.5px solid var(--border);transition:.15s}
+.quick-type-pills button.qp-expense{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.quick-type-pills button.qp-income{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.quick-form-add{padding:10px 20px;border-radius:var(--radius-sm);background:var(--blue);color:#fff;font-weight:700;font-size:.9rem;white-space:nowrap;border:none;cursor:pointer;transition:.15s}
+.quick-form-add:active{transform:scale(.95)}
+.quick-form-add:disabled{opacity:.4}
+
+.quick-section-label{padding:4px 16px 8px;font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 16px}
+.quick-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;position:relative;user-select:none;-webkit-user-select:none}
+.quick-btn:active{transform:scale(.92);box-shadow:none}
+.quick-btn.tapped{animation:quickTap .5s ease forwards;pointer-events:none}
+@keyframes quickTap{0%{transform:scale(.92);box-shadow:none}30%{transform:scale(1.02);box-shadow:var(--shadow-md)}100%{transform:scale(1);box-shadow:var(--shadow)}}
 .quick-btn .qicon{font-size:1.6rem}
 .quick-btn .qlabel{font-size:.75rem;font-weight:600;text-align:center;line-height:1.2}
 .quick-btn .qamt{font-size:.7rem;color:var(--muted);font-weight:500}
@@ -340,8 +357,30 @@ button{cursor:pointer;border:none;background:none}
 
   <!-- QUICK ADD VIEW -->
   <div class="view" id="viewQuick">
+    <!-- Quick form: dropdown + amount -->
+    <div class="quick-form">
+      <div class="quick-type-pills">
+        <button class="qp-expense" id="qpExpense" onclick="setQuickType('Expense')">Expense</button>
+        <button id="qpIncome" onclick="setQuickType('Income')">Income</button>
+      </div>
+      <div class="quick-form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="quickCatSelect" onchange="onQuickCatChange()">
+            <option value="">Select</option>
+          </select>
+        </div>
+        <div class="form-group amt">
+          <label>Amount</label>
+          <input type="number" id="quickAmountInput" placeholder="0" inputmode="decimal">
+        </div>
+        <button class="quick-form-add" id="quickFormBtn" onclick="submitQuickForm()">Add</button>
+      </div>
+    </div>
+
+    <!-- Preset buttons -->
     <div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center">
-      <p style="font-size:.85rem;color:var(--muted)">Tap to add instantly</p>
+      <div class="quick-section-label" style="padding:0">One-tap presets</div>
       <button class="btn-outline" style="width:auto;padding:6px 12px;font-size:.8rem" onclick="toggleQuickEdit()" id="quickEditBtn">Edit</button>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
@@ -995,10 +1034,17 @@ async function submitTransaction() {
 // ============================================================
 // QUICK ADD
 // ============================================================
+let quickType = 'Expense';
+let quickBusy = false;
+
 function renderQuickAdds() {
+  // Populate dropdown form
+  populateQuickDropdown();
+
+  // Render button grid
   const grid = document.getElementById('quickGrid');
-  let html = quickAdds.map(q => `
-    <button class="quick-btn" onclick="if(!quickEditMode)doQuickAdd('${esc(q.label)}',${q.amount},'${esc(q.category)}','${esc(q.subcategory)}','${esc(q.type || 'Expense')}')">
+  let html = quickAdds.map((q, idx) => `
+    <button class="quick-btn" id="qbtn${idx}" onclick="if(!quickEditMode&&!quickBusy)doQuickAdd(${idx},this)">
       <span class="qicon">${q.icon || '📝'}</span>
       <span class="qlabel">${q.label}</span>
       <span class="qamt">${CURRENCY}${q.amount}</span>
@@ -1009,43 +1055,128 @@ function renderQuickAdds() {
   grid.innerHTML = html;
 }
 
+function populateQuickDropdown() {
+  const sel = document.getElementById('quickCatSelect');
+  if (!sel) return;
+  const filtered = quickType === 'Income'
+    ? categories.filter(c => c.category === 'Income')
+    : categories.filter(c => c.category !== 'Income');
+  const cats = [...new Set(filtered.map(c => c.category))];
+  sel.innerHTML = '<option value="">Select category</option>';
+  cats.forEach(cat => {
+    const subs = filtered.filter(c => c.category === cat).map(c => c.subcategory).filter(Boolean);
+    if (subs.length > 0) {
+      sel.innerHTML += `<optgroup label="${cat}">` + subs.map(s => `<option value="${cat}||${s}">${s}</option>`).join('') + '</optgroup>';
+    } else {
+      sel.innerHTML += `<option value="${cat}||">${cat}</option>`;
+    }
+  });
+}
+
+function setQuickType(type) {
+  quickType = type;
+  document.getElementById('qpExpense').className = type === 'Expense' ? 'qp-expense' : '';
+  document.getElementById('qpIncome').className = type === 'Income' ? 'qp-income' : '';
+  populateQuickDropdown();
+}
+
+function onQuickCatChange() {
+  // Pre-fill amount from matching quick-add if exists
+  const val = document.getElementById('quickCatSelect').value;
+  if (!val) return;
+  const [cat, sub] = val.split('||');
+  const match = quickAdds.find(q => q.category === cat && (q.subcategory === sub || !sub));
+  if (match) {
+    document.getElementById('quickAmountInput').value = match.amount;
+  }
+}
+
+async function submitQuickForm() {
+  const catVal = document.getElementById('quickCatSelect').value;
+  const amount = document.getElementById('quickAmountInput').value;
+  if (!catVal) { toast('Select a category', 'err'); return; }
+  if (!amount || Number(amount) <= 0) { toast('Enter amount', 'err'); return; }
+
+  const [cat, sub] = catVal.split('||');
+  const btn = document.getElementById('quickFormBtn');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const txnData = {
+    date: new Date().toISOString().slice(0, 10),
+    member: currentUser.name,
+    type: quickType,
+    amount: Number(amount),
+    category: cat,
+    subcategory: sub || '',
+    description: sub || cat,
+    source: 'Quick'
+  };
+
+  if (!isOnline) {
+    queueTransaction(txnData);
+    toast('✓ Queued for sync', 'ok');
+  } else {
+    try {
+      const res = await api('POST', 'addTransaction', txnData);
+      if (res.ok) toast('✓ ' + (sub || cat) + ' added', 'ok');
+      else toast(res.error || 'Failed', 'err');
+    } catch (e) {
+      queueTransaction(txnData);
+      toast('✓ Queued for sync', 'ok');
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Add';
+  document.getElementById('quickAmountInput').value = '';
+  document.getElementById('quickCatSelect').value = '';
+}
+
 function toggleQuickEdit() {
   quickEditMode = !quickEditMode;
   document.getElementById('quickGrid').classList.toggle('edit-mode', quickEditMode);
   document.getElementById('quickEditBtn').textContent = quickEditMode ? 'Done' : 'Edit';
 }
 
-async function doQuickAdd(label, amount, cat, subcat, type) {
-  const btn = event.currentTarget;
-  btn.style.background = type === 'Income' ? 'var(--green-light)' : 'var(--blue-light)';
+async function doQuickAdd(idx, btnEl) {
+  const q = quickAdds[idx];
+  if (!q || quickBusy) return;
+
+  // Prevent double-tap
+  quickBusy = true;
+  btnEl.classList.add('tapped');
 
   const txnData = {
     date: new Date().toISOString().slice(0, 10),
     member: currentUser.name,
-    type: type || 'Expense',
-    amount,
-    category: cat,
-    subcategory: subcat,
-    description: label,
+    type: q.type || 'Expense',
+    amount: q.amount,
+    category: q.category,
+    subcategory: q.subcategory || '',
+    description: q.label,
     source: 'Quick'
   };
 
   if (!isOnline) {
     queueTransaction(txnData);
-    toast(`${label} queued`, 'ok');
-    setTimeout(() => btn.style.background = '', 600);
-    return;
+    toast('✓ ' + q.label + ' queued', 'ok');
+  } else {
+    try {
+      const res = await api('POST', 'addTransaction', txnData);
+      if (res.ok) toast('✓ ' + q.label + ' added', 'ok');
+      else toast(res.error || 'Failed', 'err');
+    } catch (e) {
+      queueTransaction(txnData);
+      toast('✓ ' + q.label + ' queued', 'ok');
+    }
   }
 
-  try {
-    const res = await api('POST', 'addTransaction', txnData);
-    if (res.ok) toast(`${label} added!`, 'ok');
-    else toast(res.error || 'Failed', 'err');
-  } catch (e) {
-    queueTransaction(txnData);
-    toast(`${label} queued for sync`, 'ok');
-  }
-  setTimeout(() => btn.style.background = '', 600);
+  // Reset button after animation
+  setTimeout(() => {
+    btnEl.classList.remove('tapped');
+    quickBusy = false;
+  }, 600);
 }
 
 async function deleteQuickAdd(label) {
@@ -1395,11 +1526,16 @@ function simpleHash(str) {
 function esc(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
 function toast(msg, type) {
+  // Remove any existing toast
+  document.querySelectorAll('.toast').forEach(t => t.remove());
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2500);
+  setTimeout(() => {
+    el.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 1500);
 }
 
 // Register service worker
