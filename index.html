@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<title>Family Tracker</title>
+<style>
+/* ---- RESET & BASE ---- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8fafc;--surface:#fff;--border:#e2e8f0;
+  --text:#0f172a;--muted:#64748b;--faint:#94a3b8;
+  --blue:#2563eb;--blue-light:#dbeafe;
+  --green:#16a34a;--green-light:#dcfce7;
+  --red:#dc2626;--red-light:#fee2e2;
+  --orange:#ea580c;--yellow:#eab308;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+}
+html{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;color:var(--text);background:var(--bg);-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;padding-bottom:calc(64px + var(--safe-bottom));overflow-x:hidden}
+input,select,textarea,button{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+
+/* ---- UTILITY ---- */
+.hidden{display:none!important}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:.75rem;font-weight:600}
+.badge-income{background:var(--green-light);color:var(--green)}
+.badge-expense{background:var(--red-light);color:var(--red)}
+.spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:var(--radius-sm);font-size:.85rem;font-weight:500;z-index:9999;animation:toastIn .3s ease}
+.toast-ok{background:var(--green);color:#fff}
+.toast-err{background:var(--red);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .emoji{font-size:2.5rem;margin-bottom:8px}
+
+/* ---- CONFIG BANNER ---- */
+#configBanner{background:var(--orange);color:#fff;padding:12px 16px;font-size:.85rem;line-height:1.4;text-align:center;position:fixed;top:0;left:0;right:0;z-index:100}
+#configBanner input{width:100%;margin-top:8px;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:.85rem;color:var(--text)}
+#configBanner button{background:rgba(255,255,255,.2);color:#fff;padding:6px 16px;border-radius:var(--radius-sm);font-weight:600;margin-top:8px}
+
+/* ---- LOGIN ---- */
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:24px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%)}
+#loginScreen h1{color:#fff;font-size:1.6rem;margin-bottom:4px}
+#loginScreen .subtitle{color:var(--faint);margin-bottom:32px;font-size:.9rem}
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;width:100%;max-width:400px;margin-bottom:24px}
+.member-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 12px;border-radius:var(--radius);background:rgba(255,255,255,.08);border:2px solid transparent;transition:.2s}
+.member-btn:hover,.member-btn.active{border-color:var(--blue);background:rgba(37,99,235,.15)}
+.member-btn .avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#fff}
+.member-btn .name{color:#fff;font-size:.85rem;font-weight:500}
+.pin-area{width:100%;max-width:280px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:20px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--faint);transition:.2s}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pin-key{height:56px;border-radius:var(--radius);background:rgba(255,255,255,.08);color:#fff;font-size:1.3rem;font-weight:500;transition:.15s}
+.pin-key:active{background:rgba(255,255,255,.2);transform:scale(.95)}
+.pin-key.fn{font-size:.85rem;color:var(--faint)}
+.pin-error{color:var(--red);text-align:center;font-size:.8rem;margin-top:8px;min-height:20px}
+
+/* ---- HEADER ---- */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.app-header h2{font-size:1.1rem;font-weight:700}
+.app-header .user-chip{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:99px;background:var(--bg);font-size:.8rem;font-weight:500;cursor:pointer}
+.app-header .user-chip .dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
+
+/* ---- BOTTOM NAV ---- */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:50}
+.bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;font-size:.65rem;color:var(--muted);font-weight:500;transition:.15s}
+.bottom-nav button.active{color:var(--blue)}
+.bottom-nav button .ico{font-size:1.3rem;line-height:1}
+.nav-add-btn{position:relative}
+.nav-add-btn .ico{width:42px;height:42px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-top:-18px;box-shadow:var(--shadow-md)}
+
+/* ---- VIEWS ---- */
+.view{display:none;padding:0 0 16px}
+.view.active{display:block}
+.view-pad{padding:0 16px}
+
+/* ---- DASHBOARD ---- */
+.summary-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}
+.summary-card{padding:14px;border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.summary-card .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.summary-card .value{font-size:1.3rem;font-weight:700}
+.summary-card.income .value{color:var(--green)}
+.summary-card.expense .value{color:var(--red)}
+.summary-card.balance{grid-column:1/-1}
+.summary-card.balance .value{color:var(--blue);font-size:1.5rem}
+.month-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 16px 4px}
+.month-nav button{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1rem}
+.month-nav span{font-weight:600;font-size:.95rem;min-width:140px;text-align:center}
+.txn-list{padding:0 16px}
+.txn-date-group{margin-top:16px}
+.txn-date-group .date-label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.txn-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:6px}
+.txn-icon{width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.txn-icon.expense{background:var(--red-light)}
+.txn-icon.income{background:var(--green-light)}
+.txn-info{flex:1;min-width:0}
+.txn-info .title{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-info .meta{font-size:.75rem;color:var(--muted)}
+.txn-amount{font-weight:700;font-size:.95rem;white-space:nowrap}
+.txn-amount.expense{color:var(--red)}
+.txn-amount.income{color:var(--green)}
+.txn-member-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.txn-delete{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:.9rem;transition:.15s;flex-shrink:0}
+.txn-delete:hover{background:var(--red-light);color:var(--red)}
+
+/* ---- ADD FORM ---- */
+.form-section{padding:16px}
+.type-toggle{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:16px}
+.type-toggle button{flex:1;padding:10px;border-radius:6px;font-weight:600;font-size:.9rem;transition:.2s}
+.type-toggle button.active-expense{background:var(--red);color:#fff}
+.type-toggle button.active-income{background:var(--green);color:#fff}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:.95rem;transition:.2s;outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light)}
+.form-group .amount-input{font-size:1.4rem;font-weight:700;text-align:center;padding:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-primary{width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--blue);color:#fff;font-weight:700;font-size:1rem;transition:.15s;margin-top:8px}
+.btn-primary:active{transform:scale(.98);opacity:.9}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-danger{background:var(--red)}
+.btn-outline{width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-weight:600;font-size:.9rem;transition:.15s}
+.btn-outline:active{background:var(--bg)}
+
+/* ---- QUICK ADD ---- */
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px}
+.quick-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);transition:.15s;position:relative}
+.quick-btn:active{transform:scale(.95);box-shadow:var(--shadow-md)}
+.quick-btn .qicon{font-size:1.6rem}
+.quick-btn .qlabel{font-size:.75rem;font-weight:600;text-align:center;line-height:1.2}
+.quick-btn .qamt{font-size:.7rem;color:var(--muted);font-weight:500}
+.quick-btn .qdelete{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font-size:.7rem;display:none;align-items:center;justify-content:center}
+.quick-grid.edit-mode .quick-btn .qdelete{display:flex}
+.quick-add-new{border:2px dashed var(--border);background:transparent;box-shadow:none}
+.quick-add-new .qicon{color:var(--muted)}
+
+/* ---- SMS PARSER ---- */
+.sms-area{padding:16px}
+.sms-area textarea{min-height:120px;resize:vertical}
+.sms-results{margin-top:16px}
+.sms-item{padding:12px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px}
+.sms-item .sms-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sms-item .sms-amount{font-size:1.1rem;font-weight:700}
+.sms-item .sms-detail{font-size:.8rem;color:var(--muted)}
+.sms-item .sms-actions{display:flex;gap:8px;margin-top:8px}
+.sms-item .sms-actions button{flex:1;padding:8px;border-radius:6px;font-weight:600;font-size:.8rem}
+.sms-item .sms-add{background:var(--green);color:#fff}
+.sms-item .sms-skip{background:var(--bg);border:1px solid var(--border)}
+.sms-item.duplicate{opacity:.5;border:2px solid var(--orange)}
+.sms-item.duplicate::after{content:'Possible duplicate';display:block;font-size:.7rem;color:var(--orange);font-weight:600;margin-top:4px}
+
+/* ---- SETTINGS ---- */
+.settings-section{padding:16px}
+.settings-section h3{font-size:.95rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.settings-group{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.settings-item:last-child{border-bottom:none}
+.settings-item .si-left{display:flex;align-items:center;gap:10px}
+.settings-item .si-icon{font-size:1.1rem}
+.settings-item .si-label{font-weight:500;font-size:.9rem}
+.settings-item .si-sub{font-size:.75rem;color:var(--muted)}
+.settings-item .si-delete{color:var(--faint);font-size:.85rem;padding:4px 8px;border-radius:6px}
+.settings-item .si-delete:hover{color:var(--red);background:var(--red-light)}
+
+/* ---- MODALS ---- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:480px;max-height:85dvh;overflow-y:auto;padding:20px;padding-bottom:calc(20px + var(--safe-bottom));animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.modal h3 button{color:var(--muted);font-size:1.2rem}
+.chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:.85rem;font-weight:500;transition:.15s}
+.chip.active{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+
+/* ---- RESPONSIVE ---- */
+@media(min-width:600px){
+  .summary-cards{grid-template-columns:1fr 1fr 1fr}
+  .summary-card.balance{grid-column:auto}
+  .quick-grid{grid-template-columns:repeat(4,1fr)}
+  .pin-pad{max-width:240px}
+}
+@media(min-width:768px){
+  body{max-width:540px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border);min-height:100dvh}
+  .bottom-nav{max-width:540px;left:50%;transform:translateX(-50%)}
+  .modal-backdrop{align-items:center}
+  .modal{border-radius:var(--radius);max-width:440px}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFIG BANNER (shown until API URL is set) -->
+<div id="configBanner" class="hidden">
+  <div>⚙️ Paste your Google Apps Script Web App URL to connect:</div>
+  <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+  <button onclick="saveApiUrl()">Save & Connect</button>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <h1>💰 Family Tracker</h1>
+  <p class="subtitle">Select your profile</p>
+  <div class="member-grid" id="memberGrid"></div>
+  <div class="pin-area hidden" id="pinArea">
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad" id="pinPad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key fn" onclick="pinPress('clear')">Clear</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key fn" onclick="pinPress('back')">⌫</button>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- APP (hidden until logged in) -->
+<div id="appScreen" class="hidden">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <h2 id="viewTitle">Dashboard</h2>
+    <button class="user-chip" onclick="logout()">
+      <span class="dot" id="userDot"></span>
+      <span id="userName"></span> ▾
+    </button>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div class="view active" id="viewDashboard">
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">◀</button>
+      <span id="monthLabel"></span>
+      <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="summary-cards" id="summaryCards">
+      <div class="summary-card income"><div class="label">Income</div><div class="value" id="totalIncome">₹0</div></div>
+      <div class="summary-card expense"><div class="label">Expenses</div><div class="value" id="totalExpense">₹0</div></div>
+      <div class="summary-card balance"><div class="label">Balance</div><div class="value" id="totalBalance">₹0</div></div>
+    </div>
+    <div class="txn-list" id="txnList"></div>
+  </div>
+
+  <!-- ADD VIEW -->
+  <div class="view" id="viewAdd">
+    <div class="form-section">
+      <div class="type-toggle">
+        <button id="toggleExpense" class="active-expense" onclick="setTxnType('Expense')">Expense</button>
+        <button id="toggleIncome" onclick="setTxnType('Income')">Income</button>
+      </div>
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="addAmount" class="amount-input" placeholder="0" inputmode="decimal" step="0.01">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="addCategory" onchange="updateSubcategories()"><option value="">Select</option></select>
+        </div>
+        <div class="form-group">
+          <label>Subcategory</label>
+          <select id="addSubcategory"><option value="">Select</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <input type="text" id="addDesc" placeholder="What was this for?">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="addDate">
+        </div>
+        <div class="form-group">
+          <label>Member</label>
+          <select id="addMember"></select>
+        </div>
+      </div>
+      <button class="btn-primary" id="addSubmit" onclick="submitTransaction()">Add Expense</button>
+    </div>
+  </div>
+
+  <!-- QUICK ADD VIEW -->
+  <div class="view" id="viewQuick">
+    <div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center">
+      <p style="font-size:.85rem;color:var(--muted)">Tap to add instantly</p>
+      <button class="btn-outline" style="width:auto;padding:6px 12px;font-size:.8rem" onclick="toggleQuickEdit()" id="quickEditBtn">Edit</button>
+    </div>
+    <div class="quick-grid" id="quickGrid"></div>
+  </div>
+
+  <!-- SMS VIEW -->
+  <div class="view" id="viewSms">
+    <div class="sms-area">
+      <div class="form-group">
+        <label>Paste SMS Messages</label>
+        <textarea id="smsInput" placeholder="Paste one or more bank SMS messages here. Supports most Indian bank formats (HDFC, SBI, ICICI, Axis, etc.)"></textarea>
+      </div>
+      <button class="btn-primary" onclick="parseSms()">🔍 Parse SMS</button>
+      <div class="sms-results" id="smsResults"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS VIEW -->
+  <div class="view" id="viewSettings">
+    <div class="settings-section">
+
+      <h3>📂 Categories <button class="btn-outline" style="width:auto;padding:4px 12px;font-size:.8rem;margin-left:auto" onclick="openAddCategory()">+ Add</button></h3>
+      <div class="settings-group" id="categoryList"></div>
+
+      <h3>👥 Family Members <button class="btn-outline" style="width:auto;padding:4px 12px;font-size:.8rem;margin-left:auto" onclick="openAddMember()">+ Add</button></h3>
+      <div class="settings-group" id="memberList"></div>
+
+      <h3>⚙️ App</h3>
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="si-left"><span class="si-icon">🔗</span><div><div class="si-label">API URL</div><div class="si-sub" id="apiUrlDisplay" style="word-break:break-all"></div></div></div>
+          <button class="si-delete" onclick="changeApiUrl()">Edit</button>
+        </div>
+        <div class="settings-item">
+          <div class="si-left"><span class="si-icon">🔄</span><div><div class="si-label">Refresh Data</div><div class="si-sub">Re-sync from Google Sheets</div></div></div>
+          <button class="si-delete" onclick="refreshAll()" style="color:var(--blue)">Sync</button>
+        </div>
+        <div class="settings-item">
+          <div class="si-left"><span class="si-icon">💲</span><div><div class="si-label">Currency Symbol</div></div></div>
+          <select id="currencySelect" onchange="setCurrency(this.value)" style="border:1px solid var(--border);padding:4px 8px;border-radius:6px;font-size:.85rem">
+            <option value="₹">₹ INR</option><option value="$">$ USD</option><option value="€">€ EUR</option><option value="£">£ GBP</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="active" onclick="switchView('Dashboard',this)"><span class="ico">📊</span>Home</button>
+    <button onclick="switchView('Quick',this)"><span class="ico">⚡</span>Quick</button>
+    <button class="nav-add-btn" onclick="switchView('Add',this)"><span class="ico">+</span></button>
+    <button onclick="switchView('Sms',this)"><span class="ico">💬</span>SMS</button>
+    <button onclick="switchView('Settings',this)"><span class="ico">⚙️</span>More</button>
+  </nav>
+</div>
+
+<!-- MODALS -->
+<div id="modalContainer"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let API_URL = localStorage.getItem('ft_api_url') || '';
+let CURRENCY = localStorage.getItem('ft_currency') || '₹';
+let currentUser = null;
+let selectedMember = null;
+let pin = '';
+let members = [];
+let categories = [];
+let quickAdds = [];
+let transactions = [];
+let currentMonth = new Date().toISOString().slice(0, 7);
+let txnType = 'Expense';
+let quickEditMode = false;
+
+// ============================================================
+// BOOT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('currencySelect').value = CURRENCY;
+  if (!API_URL) {
+    showConfigBanner();
+  } else {
+    boot();
+  }
+});
+
+function showConfigBanner() {
+  document.getElementById('configBanner').classList.remove('hidden');
+  document.getElementById('loginScreen').style.paddingTop = '100px';
+}
+
+function saveApiUrl() {
+  const url = document.getElementById('apiUrlInput').value.trim();
+  if (!url) return;
+  API_URL = url;
+  localStorage.setItem('ft_api_url', url);
+  document.getElementById('configBanner').classList.add('hidden');
+  document.getElementById('loginScreen').style.paddingTop = '';
+  boot();
+}
+
+function changeApiUrl() {
+  const url = prompt('Enter Apps Script Web App URL:', API_URL);
+  if (url !== null) {
+    API_URL = url.trim();
+    localStorage.setItem('ft_api_url', API_URL);
+    document.getElementById('apiUrlDisplay').textContent = API_URL.substring(0, 50) + '...';
+    toast('API URL updated', 'ok');
+  }
+}
+
+async function boot() {
+  try {
+    const data = await api('GET', 'init');
+    members = data.members || [];
+    categories = data.categories || [];
+    quickAdds = data.quickAdds || [];
+    renderLoginMembers();
+    // Check if already logged in
+    const saved = localStorage.getItem('ft_user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      showApp();
+    }
+  } catch (e) {
+    console.error(e);
+    showConfigBanner();
+    toast('Connection failed. Check your URL.', 'err');
+  }
+}
+
+// ============================================================
+// API HELPER
+// ============================================================
+async function api(method, action, body) {
+  const opts = { method, headers: { 'Content-Type': 'text/plain' } };
+  let url = API_URL;
+  if (method === 'GET') {
+    const params = new URLSearchParams({ action, ...(body || {}) });
+    url += '?' + params.toString();
+  } else {
+    opts.body = JSON.stringify({ action, ...body });
+  }
+  const resp = await fetch(url, opts);
+  const text = await resp.text();
+  try { return JSON.parse(text); } catch { throw new Error(text); }
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function renderLoginMembers() {
+  const grid = document.getElementById('memberGrid');
+  grid.innerHTML = members.map((m, i) => `
+    <button class="member-btn" onclick="selectMember(${i})">
+      <div class="avatar" style="background:${m.color || '#3b82f6'}">${(m.name || '?')[0].toUpperCase()}</div>
+      <div class="name">${m.name}</div>
+    </button>
+  `).join('');
+}
+
+function selectMember(idx) {
+  selectedMember = members[idx];
+  pin = '';
+  document.querySelectorAll('.member-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  document.getElementById('pinArea').classList.remove('hidden');
+  document.getElementById('pinError').textContent = '';
+  updatePinDots();
+}
+
+function pinPress(key) {
+  if (key === 'clear') { pin = ''; }
+  else if (key === 'back') { pin = pin.slice(0, -1); }
+  else if (pin.length < 4) { pin += key; }
+  updatePinDots();
+  if (pin.length === 4) doLogin();
+}
+
+function updatePinDots() {
+  document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < pin.length));
+}
+
+async function doLogin() {
+  try {
+    const res = await api('POST', 'login', { name: selectedMember.name, pin: selectedMember.pin });
+    // Simple client-side PIN check for speed, server validates too
+    if (pin === String(selectedMember.pin)) {
+      currentUser = { name: selectedMember.name, color: selectedMember.color };
+      localStorage.setItem('ft_user', JSON.stringify(currentUser));
+      showApp();
+    } else {
+      document.getElementById('pinError').textContent = 'Wrong PIN. Try again.';
+      pin = '';
+      updatePinDots();
+    }
+  } catch (e) {
+    // Fallback to local check
+    if (pin === String(selectedMember.pin)) {
+      currentUser = { name: selectedMember.name, color: selectedMember.color };
+      localStorage.setItem('ft_user', JSON.stringify(currentUser));
+      showApp();
+    } else {
+      document.getElementById('pinError').textContent = 'Wrong PIN.';
+      pin = '';
+      updatePinDots();
+    }
+  }
+}
+
+function logout() {
+  if (confirm('Log out?')) {
+    currentUser = null;
+    localStorage.removeItem('ft_user');
+    pin = '';
+    updatePinDots();
+    document.getElementById('appScreen').classList.add('hidden');
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('pinArea').classList.add('hidden');
+    document.querySelectorAll('.member-btn').forEach(b => b.classList.remove('active'));
+  }
+}
+
+// ============================================================
+// APP
+// ============================================================
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.remove('hidden');
+  document.getElementById('userName').textContent = currentUser.name;
+  const dot = document.getElementById('userDot');
+  dot.style.background = currentUser.color || '#3b82f6';
+  dot.textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('apiUrlDisplay').textContent = API_URL ? API_URL.substring(0, 50) + '...' : 'Not set';
+  initAddForm();
+  renderQuickAdds();
+  renderCategories();
+  renderMembers();
+  loadDashboard();
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view' + name).classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = { Dashboard: 'Dashboard', Add: 'Add Transaction', Quick: 'Quick Add', Sms: 'SMS Parser', Settings: 'Settings' };
+  document.getElementById('viewTitle').textContent = titles[name] || name;
+  if (name === 'Dashboard') loadDashboard();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  document.getElementById('monthLabel').textContent = formatMonth(currentMonth);
+  document.getElementById('txnList').innerHTML = '<div style="padding:40px"><div class="spinner"></div></div>';
+  try {
+    const data = await api('GET', 'transactions', { month: currentMonth, limit: 200 });
+    transactions = data.transactions || [];
+    renderDashboard();
+  } catch (e) {
+    document.getElementById('txnList').innerHTML = '<div class="empty-state"><div class="emoji">😵</div>Failed to load</div>';
+  }
+}
+
+function renderDashboard() {
+  let income = 0, expense = 0;
+  transactions.forEach(t => {
+    if (t.type === 'Income') income += Number(t.amount);
+    else expense += Number(t.amount);
+  });
+  document.getElementById('totalIncome').textContent = CURRENCY + formatNum(income);
+  document.getElementById('totalExpense').textContent = CURRENCY + formatNum(expense);
+  document.getElementById('totalBalance').textContent = CURRENCY + formatNum(income - expense);
+
+  if (!transactions.length) {
+    document.getElementById('txnList').innerHTML = '<div class="empty-state"><div class="emoji">📭</div>No transactions this month</div>';
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  transactions.forEach(t => {
+    if (!groups[t.date]) groups[t.date] = [];
+    groups[t.date].push(t);
+  });
+
+  let html = '';
+  for (const [date, txns] of Object.entries(groups)) {
+    const d = new Date(date + 'T00:00:00');
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    html += `<div class="txn-date-group"><div class="date-label">${label}</div>`;
+    txns.forEach(t => {
+      const icon = getCategoryIcon(t.category, t.subcategory);
+      const isExp = t.type !== 'Income';
+      const mem = members.find(m => m.name === t.member);
+      html += `
+        <div class="txn-item">
+          <div class="txn-icon ${isExp ? 'expense' : 'income'}">${icon}</div>
+          <div class="txn-info">
+            <div class="title">${t.subcategory || t.category || t.description || 'Transaction'}</div>
+            <div class="meta">${t.category}${t.description ? ' · ' + t.description : ''}${t.source === 'SMS' ? ' · 💬' : ''}</div>
+          </div>
+          ${mem ? `<div class="txn-member-dot" style="background:${mem.color}" title="${t.member}"></div>` : ''}
+          <div class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${CURRENCY}${formatNum(t.amount)}</div>
+          <button class="txn-delete" onclick="deleteTxn(${t.id})" title="Delete">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+  }
+  document.getElementById('txnList').innerHTML = html;
+}
+
+function changeMonth(delta) {
+  const [y, m] = currentMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  currentMonth = d.toISOString().slice(0, 7);
+  loadDashboard();
+}
+
+async function deleteTxn(id) {
+  if (!confirm('Delete this transaction?')) return;
+  try {
+    await api('POST', 'deleteTransaction', { id });
+    toast('Deleted', 'ok');
+    loadDashboard();
+  } catch (e) { toast('Failed to delete', 'err'); }
+}
+
+// ============================================================
+// ADD TRANSACTION
+// ============================================================
+function initAddForm() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('addDate').value = today;
+  populateCategoryDropdowns();
+  const memberSel = document.getElementById('addMember');
+  memberSel.innerHTML = members.map(m => `<option value="${m.name}" ${m.name === currentUser.name ? 'selected' : ''}>${m.name}</option>`).join('');
+  setTxnType('Expense');
+}
+
+function setTxnType(type) {
+  txnType = type;
+  const eBtn = document.getElementById('toggleExpense');
+  const iBtn = document.getElementById('toggleIncome');
+  eBtn.className = type === 'Expense' ? 'active-expense' : '';
+  iBtn.className = type === 'Income' ? 'active-income' : '';
+  document.getElementById('addSubmit').textContent = type === 'Expense' ? 'Add Expense' : 'Add Income';
+  populateCategoryDropdowns();
+}
+
+function populateCategoryDropdowns() {
+  const catSel = document.getElementById('addCategory');
+  const filtered = txnType === 'Income'
+    ? categories.filter(c => c.category === 'Income')
+    : categories.filter(c => c.category !== 'Income');
+  const cats = [...new Set(filtered.map(c => c.category))];
+  catSel.innerHTML = '<option value="">Select</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  updateSubcategories();
+}
+
+function updateSubcategories() {
+  const cat = document.getElementById('addCategory').value;
+  const subSel = document.getElementById('addSubcategory');
+  const subs = categories.filter(c => c.category === cat).map(c => c.subcategory).filter(Boolean);
+  subSel.innerHTML = '<option value="">None</option>' + subs.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+async function submitTransaction() {
+  const amount = document.getElementById('addAmount').value;
+  if (!amount || Number(amount) <= 0) { toast('Enter a valid amount', 'err'); return; }
+  const cat = document.getElementById('addCategory').value;
+  if (!cat) { toast('Select a category', 'err'); return; }
+
+  const btn = document.getElementById('addSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const res = await api('POST', 'addTransaction', {
+      date: document.getElementById('addDate').value,
+      member: document.getElementById('addMember').value,
+      type: txnType,
+      amount: amount,
+      category: cat,
+      subcategory: document.getElementById('addSubcategory').value,
+      description: document.getElementById('addDesc').value,
+      source: 'Manual'
+    });
+    if (res.ok) {
+      toast(`${txnType} added!`, 'ok');
+      document.getElementById('addAmount').value = '';
+      document.getElementById('addDesc').value = '';
+      document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+    } else {
+      toast(res.error || 'Failed', 'err');
+    }
+  } catch (e) { toast('Network error', 'err'); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = txnType === 'Expense' ? 'Add Expense' : 'Add Income';
+  }
+}
+
+// ============================================================
+// QUICK ADD
+// ============================================================
+function renderQuickAdds() {
+  const grid = document.getElementById('quickGrid');
+  let html = quickAdds.map(q => `
+    <button class="quick-btn" onclick="if(!quickEditMode)doQuickAdd('${esc(q.label)}',${q.amount},'${esc(q.category)}','${esc(q.subcategory)}','${esc(q.type || 'Expense')}')">
+      <span class="qicon">${q.icon || '📝'}</span>
+      <span class="qlabel">${q.label}</span>
+      <span class="qamt">${CURRENCY}${q.amount}</span>
+      <span class="qdelete" onclick="event.stopPropagation();deleteQuickAdd('${esc(q.label)}')">✕</span>
+    </button>
+  `).join('');
+  html += `<button class="quick-btn quick-add-new" onclick="openAddQuick()"><span class="qicon">＋</span><span class="qlabel">Add New</span></button>`;
+  grid.innerHTML = html;
+}
+
+function toggleQuickEdit() {
+  quickEditMode = !quickEditMode;
+  document.getElementById('quickGrid').classList.toggle('edit-mode', quickEditMode);
+  document.getElementById('quickEditBtn').textContent = quickEditMode ? 'Done' : 'Edit';
+}
+
+async function doQuickAdd(label, amount, cat, subcat, type) {
+  const btn = event.currentTarget;
+  btn.style.background = type === 'Income' ? 'var(--green-light)' : 'var(--blue-light)';
+  try {
+    const res = await api('POST', 'addTransaction', {
+      date: new Date().toISOString().slice(0, 10),
+      member: currentUser.name,
+      type: type || 'Expense',
+      amount,
+      category: cat,
+      subcategory: subcat,
+      description: label,
+      source: 'Quick'
+    });
+    if (res.ok) toast(`${label} added!`, 'ok');
+    else toast(res.error || 'Failed', 'err');
+  } catch (e) { toast('Network error', 'err'); }
+  setTimeout(() => btn.style.background = '', 600);
+}
+
+async function deleteQuickAdd(label) {
+  if (!confirm(`Remove "${label}" from quick adds?`)) return;
+  try {
+    await api('POST', 'deleteQuickAdd', { label });
+    quickAdds = quickAdds.filter(q => q.label !== label);
+    renderQuickAdds();
+    toast('Removed', 'ok');
+  } catch (e) { toast('Failed', 'err'); }
+}
+
+function openAddQuick() {
+  const cats = [...new Set(categories.filter(c => c.category !== 'Income').map(c => c.category))];
+  showModal('Add Quick Button', `
+    <div class="form-group"><label>Label</label><input type="text" id="mqLabel" placeholder="e.g. Tea"></div>
+    <div class="form-group"><label>Amount (${CURRENCY})</label><input type="number" id="mqAmount" placeholder="0" inputmode="decimal"></div>
+    <div class="form-group"><label>Icon (emoji)</label><input type="text" id="mqIcon" placeholder="☕" maxlength="4"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Category</label><select id="mqCat">${cats.map(c => `<option>${c}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Type</label><select id="mqType"><option>Expense</option><option>Income</option></select></div>
+    </div>
+    <button class="btn-primary" onclick="saveQuickAdd()">Save</button>
+  `);
+}
+
+async function saveQuickAdd() {
+  const label = document.getElementById('mqLabel').value.trim();
+  const amount = document.getElementById('mqAmount').value;
+  if (!label || !amount) { toast('Fill in label and amount', 'err'); return; }
+  try {
+    await api('POST', 'addQuickAdd', {
+      label,
+      amount,
+      category: document.getElementById('mqCat').value,
+      subcategory: '',
+      type: document.getElementById('mqType').value,
+      icon: document.getElementById('mqIcon').value || '📝'
+    });
+    quickAdds.push({ label, amount: Number(amount), category: document.getElementById('mqCat').value, subcategory: '', type: document.getElementById('mqType').value, icon: document.getElementById('mqIcon').value || '📝' });
+    renderQuickAdds();
+    closeModal();
+    toast('Quick add created!', 'ok');
+  } catch (e) { toast('Failed', 'err'); }
+}
+
+// ============================================================
+// SMS PARSER
+// ============================================================
+function parseSms() {
+  const raw = document.getElementById('smsInput').value.trim();
+  if (!raw) { toast('Paste SMS messages first', 'err'); return; }
+  const messages = raw.split(/\n{2,}|\r\n{2,}/);
+  const results = [];
+
+  for (const msg of messages) {
+    const text = msg.trim();
+    if (!text) continue;
+    const parsed = parseSingleSms(text);
+    if (parsed) results.push(parsed);
+  }
+
+  if (!results.length) {
+    document.getElementById('smsResults').innerHTML = '<div class="empty-state"><div class="emoji">🤷</div>Could not parse any transactions.<br>Try a different format.</div>';
+    return;
+  }
+
+  renderSmsResults(results);
+}
+
+function parseSingleSms(text) {
+  const t = text.toLowerCase();
+  let amount = null, type = 'Expense', merchant = '', raw = text;
+
+  // Amount patterns (Indian bank formats)
+  const amtPatterns = [
+    /(?:rs\.?|inr\.?|₹)\s*([\d,]+\.?\d*)/i,
+    /(?:amount|amt)[\s:]*(?:rs\.?|inr\.?|₹)?\s*([\d,]+\.?\d*)/i,
+    /([\d,]+\.?\d*)\s*(?:debited|spent|paid|charged|withdrawn)/i,
+  ];
+  for (const p of amtPatterns) {
+    const m = text.match(p);
+    if (m) { amount = parseFloat(m[1].replace(/,/g, '')); break; }
+  }
+  if (!amount || amount <= 0) return null;
+
+  // Type detection
+  if (/credited|received|deposited|refund|cashback/i.test(text)) type = 'Income';
+
+  // Merchant / description
+  const merchantPatterns = [
+    /(?:at|to|for|towards|@)\s+([A-Za-z0-9][\w\s.&'-]{1,40}?)(?:\s+on|\s+ref|\s+upi|\s*\.|$)/i,
+    /(?:info[:\s]*|UPI[:\s]*)([A-Za-z][\w\s.&'-]{1,30})/i,
+  ];
+  for (const p of merchantPatterns) {
+    const m = text.match(p);
+    if (m) { merchant = m[1].trim(); break; }
+  }
+
+  // Hash for dedup
+  const hash = simpleHash(amount + '|' + type + '|' + merchant + '|' + text.slice(0, 30));
+
+  return { amount, type, merchant, hash, raw: text.slice(0, 120), category: guessCategory(merchant, text) };
+}
+
+function guessCategory(merchant, text) {
+  const t = (merchant + ' ' + text).toLowerCase();
+  if (/swiggy|zomato|restaurant|cafe|eat|food|biryani|pizza|burger|chicken|dine/i.test(t)) return 'Food';
+  if (/uber|ola|rapido|auto|cab|taxi|metro|bus|train|irctc|petrol|fuel|diesel|shell|hp\s|bharat/i.test(t)) return 'Transport';
+  if (/amazon|flipkart|myntra|ajio|shop|mall|store|mart/i.test(t)) return 'Shopping';
+  if (/hospital|pharma|medic|apollo|doctor|clinic|health|1mg|netmeds/i.test(t)) return 'Health';
+  if (/electricity|bescom|water|gas|internet|broadband|airtel|jio|vi\s|bsnl|phone|recharge/i.test(t)) return 'Bills';
+  if (/netflix|hotstar|prime|spotify|movie|book|game|gym/i.test(t)) return 'Entertainment';
+  if (/school|college|course|udemy|unacademy|tuition|fees/i.test(t)) return 'Education';
+  if (/salary|credit|interest|dividend|refund|cashback/i.test(t)) return 'Income';
+  return 'Personal';
+}
+
+function renderSmsResults(results) {
+  const cats = [...new Set(categories.map(c => c.category))];
+  const html = results.map((r, i) => `
+    <div class="sms-item" id="smsItem${i}">
+      <div class="sms-row">
+        <span class="badge badge-${r.type.toLowerCase()}">${r.type}</span>
+        <span class="sms-amount">${CURRENCY}${formatNum(r.amount)}</span>
+      </div>
+      <div class="sms-detail">${r.merchant || 'Unknown'} · ${r.raw.slice(0, 60)}...</div>
+      <div style="margin-top:8px">
+        <select id="smsCat${i}" style="padding:6px;border:1px solid var(--border);border-radius:6px;font-size:.8rem;width:100%">
+          ${cats.map(c => `<option ${c === r.category ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="sms-actions">
+        <button class="sms-add" onclick="addFromSms(${i},'${esc(JSON.stringify(r))}')">✓ Add</button>
+        <button class="sms-skip" onclick="document.getElementById('smsItem${i}').remove()">Skip</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('smsResults').innerHTML = html;
+}
+
+async function addFromSms(idx, dataStr) {
+  const r = JSON.parse(dataStr);
+  const cat = document.getElementById('smsCat' + idx).value;
+  const item = document.getElementById('smsItem' + idx);
+  try {
+    const res = await api('POST', 'addTransaction', {
+      date: new Date().toISOString().slice(0, 10),
+      member: currentUser.name,
+      type: r.type,
+      amount: r.amount,
+      category: cat,
+      subcategory: '',
+      description: r.merchant || 'SMS Transaction',
+      source: 'SMS',
+      smsHash: r.hash
+    });
+    if (res.ok) {
+      item.style.background = 'var(--green-light)';
+      item.innerHTML = '<div style="text-align:center;padding:8px;color:var(--green);font-weight:600">✓ Added</div>';
+      toast('Added from SMS', 'ok');
+    } else if (res.error && res.error.includes('Duplicate')) {
+      item.classList.add('duplicate');
+      toast('Duplicate detected', 'err');
+    } else {
+      toast(res.error || 'Failed', 'err');
+    }
+  } catch (e) { toast('Network error', 'err'); }
+}
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+function renderCategories() {
+  const grouped = {};
+  categories.forEach(c => {
+    if (!grouped[c.category]) grouped[c.category] = [];
+    if (c.subcategory) grouped[c.category].push(c);
+  });
+  let html = '';
+  for (const [cat, subs] of Object.entries(grouped)) {
+    html += `<div class="settings-item">
+      <div class="si-left"><span class="si-icon">${subs[0]?.icon || '📁'}</span><div>
+        <div class="si-label">${cat}</div>
+        <div class="si-sub">${subs.map(s => s.subcategory).join(', ')}</div>
+      </div></div>
+      <button class="si-delete" onclick="deleteCategory('${esc(cat)}')">✕</button>
+    </div>`;
+  }
+  document.getElementById('categoryList').innerHTML = html || '<div class="settings-item"><div class="si-left">No categories</div></div>';
+}
+
+function openAddCategory() {
+  showModal('Add Category', `
+    <div class="form-group"><label>Category Name</label><input type="text" id="mcCat" placeholder="e.g. Subscriptions"></div>
+    <div class="form-group"><label>Subcategory (optional)</label><input type="text" id="mcSub" placeholder="e.g. Netflix"></div>
+    <div class="form-group"><label>Icon (emoji)</label><input type="text" id="mcIcon" placeholder="📺" maxlength="4"></div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Tip: To add a subcategory to an existing category, type the same category name.</p>
+    <button class="btn-primary" onclick="saveCategory()">Save Category</button>
+  `);
+}
+
+async function saveCategory() {
+  const cat = document.getElementById('mcCat').value.trim();
+  if (!cat) { toast('Enter a category name', 'err'); return; }
+  const data = {
+    category: cat,
+    subcategory: document.getElementById('mcSub').value.trim(),
+    icon: document.getElementById('mcIcon').value || '📁'
+  };
+  try {
+    await api('POST', 'addCategory', data);
+    categories.push(data);
+    renderCategories();
+    populateCategoryDropdowns();
+    closeModal();
+    toast('Category added!', 'ok');
+  } catch (e) { toast('Failed', 'err'); }
+}
+
+async function deleteCategory(cat) {
+  if (!confirm(`Delete all "${cat}" subcategories?`)) return;
+  try {
+    // Delete all subcategories of this category
+    const toDelete = categories.filter(c => c.category === cat);
+    for (const c of toDelete) {
+      await api('POST', 'deleteCategory', { category: c.category, subcategory: c.subcategory });
+    }
+    categories = categories.filter(c => c.category !== cat);
+    renderCategories();
+    populateCategoryDropdowns();
+    toast('Deleted', 'ok');
+  } catch (e) { toast('Failed', 'err'); }
+}
+
+// ============================================================
+// MEMBERS
+// ============================================================
+function renderMembers() {
+  let html = members.map(m => `
+    <div class="settings-item">
+      <div class="si-left">
+        <span class="si-icon" style="width:28px;height:28px;border-radius:50%;background:${m.color};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">${m.name[0]}</span>
+        <div><div class="si-label">${m.name}</div><div class="si-sub">PIN: ${m.pin}</div></div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('memberList').innerHTML = html;
+}
+
+function openAddMember() {
+  const colors = ['#3b82f6','#16a34a','#dc2626','#9333ea','#ea580c','#0891b2','#d946ef','#84cc16'];
+  showModal('Add Family Member', `
+    <div class="form-group"><label>Name</label><input type="text" id="mmName" placeholder="Name"></div>
+    <div class="form-group"><label>4-Digit PIN</label><input type="number" id="mmPin" placeholder="1234" maxlength="4" inputmode="numeric"></div>
+    <div class="form-group"><label>Color</label>
+      <div class="chip-group" id="mmColors">${colors.map((c, i) => `<button class="chip ${i === 0 ? 'active' : ''}" style="background:${c};color:#fff;border-color:${c}" onclick="pickColor(this,'${c}')">&nbsp;&nbsp;&nbsp;</button>`).join('')}</div>
+      <input type="hidden" id="mmColor" value="${colors[0]}">
+    </div>
+    <button class="btn-primary" onclick="saveMember()">Add Member</button>
+  `);
+}
+
+function pickColor(el, color) {
+  document.querySelectorAll('#mmColors .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mmColor').value = color;
+}
+
+async function saveMember() {
+  const name = document.getElementById('mmName').value.trim();
+  const pin = document.getElementById('mmPin').value.trim();
+  if (!name || pin.length !== 4) { toast('Enter name and 4-digit PIN', 'err'); return; }
+  const data = { name, pin, color: document.getElementById('mmColor').value };
+  try {
+    await api('POST', 'addMember', data);
+    members.push(data);
+    renderMembers();
+    renderLoginMembers();
+    closeModal();
+    toast('Member added!', 'ok');
+  } catch (e) { toast('Failed', 'err'); }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function showModal(title, content) {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>${title}<button onclick="closeModal()">✕</button></h3>
+        ${content}
+      </div>
+    </div>`;
+}
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function setCurrency(c) { CURRENCY = c; localStorage.setItem('ft_currency', c); }
+
+async function refreshAll() {
+  toast('Syncing...', 'ok');
+  try {
+    const data = await api('GET', 'init');
+    members = data.members || [];
+    categories = data.categories || [];
+    quickAdds = data.quickAdds || [];
+    renderQuickAdds();
+    renderCategories();
+    renderMembers();
+    renderLoginMembers();
+    populateCategoryDropdowns();
+    loadDashboard();
+    toast('Data synced!', 'ok');
+  } catch (e) { toast('Sync failed', 'err'); }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function formatNum(n) {
+  return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function formatMonth(ym) {
+  const [y, m] = ym.split('-');
+  return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+
+function getCategoryIcon(cat, sub) {
+  const c = categories.find(x => x.category === cat && (x.subcategory === sub || !sub));
+  return c?.icon || '💳';
+}
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'sms_' + Math.abs(hash).toString(36);
+}
+
+function esc(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
