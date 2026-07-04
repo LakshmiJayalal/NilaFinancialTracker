@@ -31,6 +31,11 @@ button{cursor:pointer;border:none;background:none}
 
 /* ---- UTILITY ---- */
 .hidden{display:none!important}
+.offline-bar{background:#fef3c7;color:#92400e;padding:6px 16px;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:10px;justify-content:center;position:sticky;top:0;z-index:51}
+.offline-bar.online{background:var(--green-light);color:var(--green);animation:fadeOut 2s 1s forwards}
+@keyframes fadeOut{to{opacity:0;height:0;padding:0;overflow:hidden}}
+.pending-badge{background:var(--orange);color:#fff;padding:2px 8px;border-radius:99px;font-size:.7rem}
+.sync-btn{background:var(--green);color:#fff;padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:.75rem;font-weight:600}
 .badge-income{background:var(--green-light);color:var(--green)}
 .badge-expense{background:var(--red-light);color:var(--red)}
@@ -263,6 +268,13 @@ button{cursor:pointer;border:none;background:none}
 <!-- APP (hidden until logged in) -->
 <div id="appScreen" class="hidden">
 
+  <!-- OFFLINE BAR -->
+  <div id="offlineBar" class="offline-bar hidden">
+    <span>📡 Offline</span>
+    <span id="pendingBadge" class="pending-badge hidden">0 pending</span>
+    <button id="syncNowBtn" class="sync-btn hidden" onclick="syncQueue()">Sync now</button>
+  </div>
+
   <!-- HEADER -->
   <div class="app-header">
     <h2 id="viewTitle">Dashboard</h2>
@@ -411,6 +423,107 @@ let transactions = [];
 let currentMonth = new Date().toISOString().slice(0, 7);
 let txnType = 'Expense';
 let quickEditMode = false;
+let isOnline = navigator.onLine;
+let offlineQueue = JSON.parse(localStorage.getItem('ft_offline_queue') || '[]');
+
+// ============================================================
+// OFFLINE QUEUE
+// ============================================================
+function saveQueue() {
+  localStorage.setItem('ft_offline_queue', JSON.stringify(offlineQueue));
+  updateOfflineUI();
+}
+
+function updateOfflineUI() {
+  const bar = document.getElementById('offlineBar');
+  const badge = document.getElementById('pendingBadge');
+  const syncBtn = document.getElementById('syncNowBtn');
+  if (!bar) return;
+
+  if (!isOnline) {
+    bar.classList.remove('hidden', 'online');
+    bar.querySelector('span').textContent = '📡 Offline — expenses will queue';
+  } else if (offlineQueue.length > 0) {
+    bar.classList.remove('hidden');
+    bar.classList.add('online');
+    bar.querySelector('span').textContent = '🟢 Back online';
+  } else {
+    bar.classList.add('hidden');
+  }
+
+  if (offlineQueue.length > 0) {
+    badge.classList.remove('hidden');
+    badge.textContent = offlineQueue.length + ' pending';
+    syncBtn.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+    syncBtn.classList.add('hidden');
+  }
+}
+
+function queueTransaction(txnData) {
+  txnData._queuedAt = new Date().toISOString();
+  offlineQueue.push(txnData);
+  saveQueue();
+}
+
+async function syncQueue() {
+  if (!isOnline || offlineQueue.length === 0) return;
+  const syncBtn = document.getElementById('syncNowBtn');
+  if (syncBtn) { syncBtn.textContent = 'Syncing...'; syncBtn.disabled = true; }
+
+  let synced = 0, failed = 0;
+  const remaining = [];
+
+  for (const txn of offlineQueue) {
+    try {
+      const copy = { ...txn };
+      delete copy._queuedAt;
+      const res = await api('POST', 'addTransaction', copy);
+      if (res.ok) { synced++; }
+      else if (res.error && res.error.includes('Duplicate')) { synced++; }
+      else { remaining.push(txn); failed++; }
+    } catch (e) {
+      remaining.push(txn);
+      failed++;
+    }
+  }
+
+  offlineQueue = remaining;
+  saveQueue();
+  if (syncBtn) { syncBtn.textContent = 'Sync now'; syncBtn.disabled = false; }
+
+  if (synced > 0) toast(synced + ' transaction' + (synced > 1 ? 's' : '') + ' synced!', 'ok');
+  if (failed > 0) toast(failed + ' failed — will retry', 'err');
+  if (synced > 0) loadDashboard();
+}
+
+// Cache init data locally for offline use
+function cacheInitData() {
+  localStorage.setItem('ft_cache_members', JSON.stringify(members));
+  localStorage.setItem('ft_cache_categories', JSON.stringify(categories));
+  localStorage.setItem('ft_cache_quickadds', JSON.stringify(quickAdds));
+}
+
+function loadCachedData() {
+  try {
+    members = JSON.parse(localStorage.getItem('ft_cache_members') || '[]');
+    categories = JSON.parse(localStorage.getItem('ft_cache_categories') || '[]');
+    quickAdds = JSON.parse(localStorage.getItem('ft_cache_quickadds') || '[]');
+    return members.length > 0;
+  } catch { return false; }
+}
+
+// Listen for online/offline
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateOfflineUI();
+  if (offlineQueue.length > 0) syncQueue();
+});
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateOfflineUI();
+});
 
 // ============================================================
 // BOOT
@@ -435,9 +548,17 @@ async function boot() {
   status.innerHTML = '<span class="dot orange"></span><span>Connecting to Google Sheets...</span>';
   try {
     const data = await api('GET', 'init');
+    if (data.error && data.error.includes('Unauthorized')) {
+      status.innerHTML = '<span class="dot red"></span><span>Invalid API key — check below</span>';
+      document.getElementById('setupSection').style.display = '';
+      document.getElementById('apiUrlInput').value = API_URL;
+      document.getElementById('apiKeyInput').value = API_KEY;
+      return;
+    }
     members = data.members || [];
     categories = data.categories || [];
     quickAdds = data.quickAdds || [];
+    cacheInitData();
     status.innerHTML = '<span class="dot green"></span><span>Connected ✓</span>';
     document.getElementById('setupSection').style.display = 'none';
     document.getElementById('setupToggle').style.display = '';
@@ -448,12 +569,27 @@ async function boot() {
       currentUser = JSON.parse(saved);
       showApp();
     }
+    // Auto-sync any queued items
+    if (offlineQueue.length > 0) syncQueue();
   } catch (e) {
     console.error(e);
-    status.innerHTML = '<span class="dot red"></span><span>Connection failed — check URL below</span>';
-    document.getElementById('setupSection').style.display = '';
-    document.getElementById('apiUrlInput').value = API_URL;
-    document.getElementById('loginBtn').disabled = true;
+    // Try loading cached data for offline use
+    if (loadCachedData()) {
+      status.innerHTML = '<span class="dot orange"></span><span>Offline — using cached data</span>';
+      document.getElementById('setupSection').style.display = 'none';
+      document.getElementById('setupToggle').style.display = '';
+      populateMemberDropdown();
+      const saved = localStorage.getItem('ft_user');
+      if (saved) {
+        currentUser = JSON.parse(saved);
+        showApp();
+      }
+    } else {
+      status.innerHTML = '<span class="dot red"></span><span>Connection failed — check URL below</span>';
+      document.getElementById('setupSection').style.display = '';
+      document.getElementById('apiUrlInput').value = API_URL;
+      document.getElementById('loginBtn').disabled = true;
+    }
   }
 }
 
@@ -656,6 +792,7 @@ function showApp() {
   renderQuickAdds();
   renderCategories();
   renderMembers();
+  updateOfflineUI();
   loadDashboard();
 }
 
@@ -683,7 +820,17 @@ async function loadDashboard() {
     transactions = data.transactions || [];
     renderDashboard();
   } catch (e) {
-    document.getElementById('txnList').innerHTML = '<div class="empty-state"><div class="emoji">😵</div>Failed to load</div>';
+    // Show queued items when offline
+    if (offlineQueue.length > 0) {
+      transactions = offlineQueue.filter(t => t.date && t.date.substring(0, 7) === currentMonth).map((t, i) => ({
+        ...t, id: 'q' + i, source: 'Queued'
+      }));
+      renderDashboard();
+      document.getElementById('txnList').insertAdjacentHTML('afterbegin',
+        '<div style="padding:8px 12px;background:#fef3c7;border-radius:8px;font-size:.8rem;color:#92400e;margin-bottom:10px">📡 Offline — showing queued entries only</div>');
+    } else {
+      document.getElementById('txnList').innerHTML = '<div class="empty-state"><div class="emoji">📡</div>Offline — add expenses and they\'ll sync later</div>';
+    }
   }
 }
 
@@ -800,17 +947,30 @@ async function submitTransaction() {
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
+  const txnData = {
+    date: document.getElementById('addDate').value,
+    member: document.getElementById('addMember').value,
+    type: txnType,
+    amount: amount,
+    category: cat,
+    subcategory: document.getElementById('addSubcategory').value,
+    description: document.getElementById('addDesc').value,
+    source: 'Manual'
+  };
+
+  if (!isOnline) {
+    queueTransaction(txnData);
+    toast(`${txnType} queued — will sync when online`, 'ok');
+    document.getElementById('addAmount').value = '';
+    document.getElementById('addDesc').value = '';
+    document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+    btn.disabled = false;
+    btn.textContent = txnType === 'Expense' ? 'Add Expense' : 'Add Income';
+    return;
+  }
+
   try {
-    const res = await api('POST', 'addTransaction', {
-      date: document.getElementById('addDate').value,
-      member: document.getElementById('addMember').value,
-      type: txnType,
-      amount: amount,
-      category: cat,
-      subcategory: document.getElementById('addSubcategory').value,
-      description: document.getElementById('addDesc').value,
-      source: 'Manual'
-    });
+    const res = await api('POST', 'addTransaction', txnData);
     if (res.ok) {
       toast(`${txnType} added!`, 'ok');
       document.getElementById('addAmount').value = '';
@@ -819,7 +979,13 @@ async function submitTransaction() {
     } else {
       toast(res.error || 'Failed', 'err');
     }
-  } catch (e) { toast('Network error', 'err'); }
+  } catch (e) {
+    // Network failed mid-request — queue it
+    queueTransaction(txnData);
+    toast(`Network error — queued for sync`, 'ok');
+    document.getElementById('addAmount').value = '';
+    document.getElementById('addDesc').value = '';
+  }
   finally {
     btn.disabled = false;
     btn.textContent = txnType === 'Expense' ? 'Add Expense' : 'Add Income';
@@ -852,20 +1018,33 @@ function toggleQuickEdit() {
 async function doQuickAdd(label, amount, cat, subcat, type) {
   const btn = event.currentTarget;
   btn.style.background = type === 'Income' ? 'var(--green-light)' : 'var(--blue-light)';
+
+  const txnData = {
+    date: new Date().toISOString().slice(0, 10),
+    member: currentUser.name,
+    type: type || 'Expense',
+    amount,
+    category: cat,
+    subcategory: subcat,
+    description: label,
+    source: 'Quick'
+  };
+
+  if (!isOnline) {
+    queueTransaction(txnData);
+    toast(`${label} queued`, 'ok');
+    setTimeout(() => btn.style.background = '', 600);
+    return;
+  }
+
   try {
-    const res = await api('POST', 'addTransaction', {
-      date: new Date().toISOString().slice(0, 10),
-      member: currentUser.name,
-      type: type || 'Expense',
-      amount,
-      category: cat,
-      subcategory: subcat,
-      description: label,
-      source: 'Quick'
-    });
+    const res = await api('POST', 'addTransaction', txnData);
     if (res.ok) toast(`${label} added!`, 'ok');
     else toast(res.error || 'Failed', 'err');
-  } catch (e) { toast('Network error', 'err'); }
+  } catch (e) {
+    queueTransaction(txnData);
+    toast(`${label} queued for sync`, 'ok');
+  }
   setTimeout(() => btn.style.background = '', 600);
 }
 
