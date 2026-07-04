@@ -43,29 +43,38 @@ button{cursor:pointer;border:none;background:none}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .empty-state .emoji{font-size:2.5rem;margin-bottom:8px}
 
-/* ---- CONFIG BANNER ---- */
-#configBanner{background:var(--orange);color:#fff;padding:12px 16px;font-size:.85rem;line-height:1.4;text-align:center;position:fixed;top:0;left:0;right:0;z-index:100}
-#configBanner input{width:100%;margin-top:8px;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:.85rem;color:var(--text)}
-#configBanner button{background:rgba(255,255,255,.2);color:#fff;padding:6px 16px;border-radius:var(--radius-sm);font-weight:600;margin-top:8px}
-
 /* ---- LOGIN ---- */
 #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:24px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%)}
-#loginScreen h1{color:#fff;font-size:1.6rem;margin-bottom:4px}
-#loginScreen .subtitle{color:var(--faint);margin-bottom:32px;font-size:.9rem}
-.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;width:100%;max-width:400px;margin-bottom:24px}
-.member-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 12px;border-radius:var(--radius);background:rgba(255,255,255,.08);border:2px solid transparent;transition:.2s}
-.member-btn:hover,.member-btn.active{border-color:var(--blue);background:rgba(37,99,235,.15)}
-.member-btn .avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#fff}
-.member-btn .name{color:#fff;font-size:.85rem;font-weight:500}
-.pin-area{width:100%;max-width:280px}
-.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:20px}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--faint);transition:.2s}
-.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.pin-key{height:56px;border-radius:var(--radius);background:rgba(255,255,255,.08);color:#fff;font-size:1.3rem;font-weight:500;transition:.15s}
-.pin-key:active{background:rgba(255,255,255,.2);transform:scale(.95)}
-.pin-key.fn{font-size:.85rem;color:var(--faint)}
-.pin-error{color:var(--red);text-align:center;font-size:.8rem;margin-top:8px;min-height:20px}
+#loginScreen h1{color:#fff;font-size:1.8rem;margin-bottom:4px}
+#loginScreen .subtitle{color:var(--faint);margin-bottom:12px;font-size:.9rem}
+.login-card{width:100%;max-width:360px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 24px}
+.login-card .lc-label{display:block;font-size:.75rem;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.login-card select,.login-card input[type="text"],.login-card input[type="url"]{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:1rem;outline:none;transition:.2s;appearance:auto;-webkit-appearance:auto}
+.login-card select option{color:var(--text);background:var(--surface)}
+.login-card select:focus,.login-card input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.login-card .lc-group{margin-bottom:18px}
+.login-card .pin-input-wrap{display:flex;gap:10px;justify-content:center}
+.login-card .pin-digit{width:52px;height:58px;text-align:center;font-size:1.6rem;font-weight:700;letter-spacing:2px;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;outline:none;transition:.2s;-moz-appearance:textfield}
+.login-card .pin-digit::-webkit-inner-spin-button,.login-card .pin-digit::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.login-card .pin-digit:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.login-card .pin-digit.filled{border-color:var(--blue);background:rgba(37,99,235,.15)}
+.login-btn{width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--blue);color:#fff;font-weight:700;font-size:1rem;transition:.15s;margin-top:6px;border:none;cursor:pointer}
+.login-btn:active{transform:scale(.98);opacity:.9}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.login-error{color:#f87171;text-align:center;font-size:.85rem;margin-top:10px;min-height:22px}
+.login-status{text-align:center;margin-bottom:18px;font-size:.8rem}
+.login-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.login-status .dot.green{background:var(--green)}
+.login-status .dot.red{background:var(--red)}
+.login-status .dot.orange{background:var(--orange)}
+.login-status span{color:var(--faint)}
+.setup-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.setup-section .setup-title{color:#fff;font-size:.95rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.setup-section input[type="url"]{margin-bottom:8px}
+.setup-btn{width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--green);color:#fff;font-weight:600;font-size:.9rem;border:none;cursor:pointer;transition:.15s}
+.setup-btn:active{transform:scale(.98)}
+.setup-toggle{color:var(--faint);font-size:.8rem;text-align:center;margin-top:14px;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+.setup-toggle:hover{color:#fff}
 
 /* ---- HEADER ---- */
 .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
@@ -202,37 +211,50 @@ button{cursor:pointer;border:none;background:none}
 </head>
 <body>
 
-<!-- CONFIG BANNER (shown until API URL is set) -->
-<div id="configBanner" class="hidden">
-  <div>⚙️ Paste your Google Apps Script Web App URL to connect:</div>
-  <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec">
-  <button onclick="saveApiUrl()">Save & Connect</button>
-</div>
-
 <!-- LOGIN SCREEN -->
 <div id="loginScreen">
   <h1>💰 Family Tracker</h1>
-  <p class="subtitle">Select your profile</p>
-  <div class="member-grid" id="memberGrid"></div>
-  <div class="pin-area hidden" id="pinArea">
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  <p class="subtitle">Track expenses together</p>
+
+  <div class="login-card">
+    <!-- Connection status -->
+    <div class="login-status" id="connStatus">
+      <span class="dot orange"></span><span>Checking connection...</span>
     </div>
-    <div class="pin-pad" id="pinPad">
-      <button class="pin-key" onclick="pinPress('1')">1</button>
-      <button class="pin-key" onclick="pinPress('2')">2</button>
-      <button class="pin-key" onclick="pinPress('3')">3</button>
-      <button class="pin-key" onclick="pinPress('4')">4</button>
-      <button class="pin-key" onclick="pinPress('5')">5</button>
-      <button class="pin-key" onclick="pinPress('6')">6</button>
-      <button class="pin-key" onclick="pinPress('7')">7</button>
-      <button class="pin-key" onclick="pinPress('8')">8</button>
-      <button class="pin-key" onclick="pinPress('9')">9</button>
-      <button class="pin-key fn" onclick="pinPress('clear')">Clear</button>
-      <button class="pin-key" onclick="pinPress('0')">0</button>
-      <button class="pin-key fn" onclick="pinPress('back')">⌫</button>
+
+    <!-- Setup section (shown when no API URL) -->
+    <div class="setup-section" id="setupSection" style="display:none">
+      <div class="setup-title">🔗 Connect to Google Sheets</div>
+      <label class="lc-label">Apps Script Web App URL</label>
+      <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="setup-btn" onclick="saveApiUrl()">Connect</button>
     </div>
-    <div class="pin-error" id="pinError"></div>
+
+    <!-- Member dropdown -->
+    <div class="lc-group">
+      <label class="lc-label">Who's logging in?</label>
+      <select id="memberDropdown" onchange="onMemberSelect()">
+        <option value="">— Select member —</option>
+      </select>
+    </div>
+
+    <!-- PIN input -->
+    <div class="lc-group">
+      <label class="lc-label">Enter 4-digit PIN</label>
+      <div class="pin-input-wrap">
+        <input type="number" class="pin-digit" id="pin1" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="pinDigitInput(this,1)" onkeydown="pinDigitKey(event,1)" onfocus="this.select()">
+        <input type="number" class="pin-digit" id="pin2" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="pinDigitInput(this,2)" onkeydown="pinDigitKey(event,2)" onfocus="this.select()">
+        <input type="number" class="pin-digit" id="pin3" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="pinDigitInput(this,3)" onkeydown="pinDigitKey(event,3)" onfocus="this.select()">
+        <input type="number" class="pin-digit" id="pin4" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="pinDigitInput(this,4)" onkeydown="pinDigitKey(event,4)" onfocus="this.select()">
+      </div>
+    </div>
+
+    <!-- Login button -->
+    <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Log In</button>
+    <div class="login-error" id="loginError"></div>
+
+    <!-- Toggle setup link -->
+    <button class="setup-toggle" id="setupToggle" onclick="toggleSetup()">⚙️ Change connection settings</button>
   </div>
 </div>
 
@@ -388,46 +410,31 @@ let quickEditMode = false;
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('currencySelect').value = CURRENCY;
-  if (!API_URL) {
-    showConfigBanner();
-  } else {
-    boot();
-  }
+  boot();
 });
 
-function showConfigBanner() {
-  document.getElementById('configBanner').classList.remove('hidden');
-  document.getElementById('loginScreen').style.paddingTop = '100px';
-}
-
-function saveApiUrl() {
-  const url = document.getElementById('apiUrlInput').value.trim();
-  if (!url) return;
-  API_URL = url;
-  localStorage.setItem('ft_api_url', url);
-  document.getElementById('configBanner').classList.add('hidden');
-  document.getElementById('loginScreen').style.paddingTop = '';
-  boot();
-}
-
-function changeApiUrl() {
-  const url = prompt('Enter Apps Script Web App URL:', API_URL);
-  if (url !== null) {
-    API_URL = url.trim();
-    localStorage.setItem('ft_api_url', API_URL);
-    document.getElementById('apiUrlDisplay').textContent = API_URL.substring(0, 50) + '...';
-    toast('API URL updated', 'ok');
-  }
-}
-
 async function boot() {
+  const status = document.getElementById('connStatus');
+  if (!API_URL) {
+    // No URL saved — show setup
+    status.innerHTML = '<span class="dot red"></span><span>Not connected — add your Google Sheets URL below</span>';
+    document.getElementById('setupSection').style.display = '';
+    document.getElementById('setupToggle').style.display = 'none';
+    document.getElementById('loginBtn').disabled = true;
+    return;
+  }
+
+  status.innerHTML = '<span class="dot orange"></span><span>Connecting to Google Sheets...</span>';
   try {
     const data = await api('GET', 'init');
     members = data.members || [];
     categories = data.categories || [];
     quickAdds = data.quickAdds || [];
-    renderLoginMembers();
-    // Check if already logged in
+    status.innerHTML = '<span class="dot green"></span><span>Connected ✓</span>';
+    document.getElementById('setupSection').style.display = 'none';
+    document.getElementById('setupToggle').style.display = '';
+    populateMemberDropdown();
+    // Auto-login if session exists
     const saved = localStorage.getItem('ft_user');
     if (saved) {
       currentUser = JSON.parse(saved);
@@ -435,8 +442,36 @@ async function boot() {
     }
   } catch (e) {
     console.error(e);
-    showConfigBanner();
-    toast('Connection failed. Check your URL.', 'err');
+    status.innerHTML = '<span class="dot red"></span><span>Connection failed — check URL below</span>';
+    document.getElementById('setupSection').style.display = '';
+    document.getElementById('apiUrlInput').value = API_URL;
+    document.getElementById('loginBtn').disabled = true;
+  }
+}
+
+function saveApiUrl() {
+  const url = document.getElementById('apiUrlInput').value.trim();
+  if (!url) { toast('Paste your Apps Script URL', 'err'); return; }
+  API_URL = url;
+  localStorage.setItem('ft_api_url', url);
+  boot();
+}
+
+function toggleSetup() {
+  const sec = document.getElementById('setupSection');
+  const showing = sec.style.display !== 'none';
+  sec.style.display = showing ? 'none' : '';
+  if (!showing) document.getElementById('apiUrlInput').value = API_URL;
+}
+
+function changeApiUrl() {
+  const url = prompt('Enter Apps Script Web App URL:', API_URL);
+  if (url !== null) {
+    API_URL = url.trim();
+    localStorage.setItem('ft_api_url', API_URL);
+    document.getElementById('apiUrlDisplay').textContent = API_URL ? API_URL.substring(0, 50) + '...' : 'Not set';
+    toast('API URL updated — reloading...', 'ok');
+    setTimeout(() => location.reload(), 800);
   }
 }
 
@@ -460,61 +495,104 @@ async function api(method, action, body) {
 // ============================================================
 // LOGIN
 // ============================================================
-function renderLoginMembers() {
-  const grid = document.getElementById('memberGrid');
-  grid.innerHTML = members.map((m, i) => `
-    <button class="member-btn" onclick="selectMember(${i})">
-      <div class="avatar" style="background:${m.color || '#3b82f6'}">${(m.name || '?')[0].toUpperCase()}</div>
-      <div class="name">${m.name}</div>
-    </button>
-  `).join('');
+function populateMemberDropdown() {
+  const dd = document.getElementById('memberDropdown');
+  dd.innerHTML = '<option value="">— Select member —</option>';
+  members.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = m.name;
+    dd.appendChild(opt);
+  });
+  onMemberSelect();
 }
 
-function selectMember(idx) {
-  selectedMember = members[idx];
-  pin = '';
-  document.querySelectorAll('.member-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
-  document.getElementById('pinArea').classList.remove('hidden');
-  document.getElementById('pinError').textContent = '';
-  updatePinDots();
+function onMemberSelect() {
+  const idx = document.getElementById('memberDropdown').value;
+  selectedMember = idx !== '' ? members[parseInt(idx)] : null;
+  clearPinInputs();
+  updateLoginBtn();
+  if (selectedMember) document.getElementById('pin1').focus();
 }
 
-function pinPress(key) {
-  if (key === 'clear') { pin = ''; }
-  else if (key === 'back') { pin = pin.slice(0, -1); }
-  else if (pin.length < 4) { pin += key; }
-  updatePinDots();
-  if (pin.length === 4) doLogin();
+// ---- PIN digit inputs ----
+function pinDigitInput(el, pos) {
+  // Allow only single digit
+  let val = el.value.replace(/\D/g, '');
+  if (val.length > 1) val = val.charAt(val.length - 1);
+  el.value = val;
+  el.classList.toggle('filled', val !== '');
+  // Auto-advance
+  if (val && pos < 4) {
+    document.getElementById('pin' + (pos + 1)).focus();
+  }
+  updateLoginBtn();
+  // Auto-submit when all 4 filled
+  if (pos === 4 && val && getPin().length === 4) {
+    doLogin();
+  }
 }
 
-function updatePinDots() {
-  document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < pin.length));
+function pinDigitKey(e, pos) {
+  // Backspace moves to previous
+  if (e.key === 'Backspace' && !e.target.value && pos > 1) {
+    e.preventDefault();
+    const prev = document.getElementById('pin' + (pos - 1));
+    prev.value = '';
+    prev.classList.remove('filled');
+    prev.focus();
+    updateLoginBtn();
+  }
+  // Enter submits
+  if (e.key === 'Enter') doLogin();
+}
+
+function getPin() {
+  return [1,2,3,4].map(i => document.getElementById('pin' + i).value).join('');
+}
+
+function clearPinInputs() {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('pin' + i);
+    el.value = '';
+    el.classList.remove('filled');
+  });
+  document.getElementById('loginError').textContent = '';
+}
+
+function updateLoginBtn() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = !selectedMember || getPin().length < 4;
 }
 
 async function doLogin() {
+  if (!selectedMember) { document.getElementById('loginError').textContent = 'Select a member'; return; }
+  const enteredPin = getPin();
+  if (enteredPin.length < 4) { document.getElementById('loginError').textContent = 'Enter 4-digit PIN'; return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Logging in...';
+  document.getElementById('loginError').textContent = '';
+
   try {
-    const res = await api('POST', 'login', { name: selectedMember.name, pin: selectedMember.pin });
-    // Simple client-side PIN check for speed, server validates too
-    if (pin === String(selectedMember.pin)) {
+    // Client-side check (PIN is fetched from sheet during init)
+    if (enteredPin === String(selectedMember.pin)) {
       currentUser = { name: selectedMember.name, color: selectedMember.color };
       localStorage.setItem('ft_user', JSON.stringify(currentUser));
       showApp();
     } else {
-      document.getElementById('pinError').textContent = 'Wrong PIN. Try again.';
-      pin = '';
-      updatePinDots();
+      document.getElementById('loginError').textContent = 'Wrong PIN. Try again.';
+      clearPinInputs();
+      document.getElementById('pin1').focus();
     }
   } catch (e) {
-    // Fallback to local check
-    if (pin === String(selectedMember.pin)) {
-      currentUser = { name: selectedMember.name, color: selectedMember.color };
-      localStorage.setItem('ft_user', JSON.stringify(currentUser));
-      showApp();
-    } else {
-      document.getElementById('pinError').textContent = 'Wrong PIN.';
-      pin = '';
-      updatePinDots();
-    }
+    document.getElementById('loginError').textContent = 'Login failed. Try again.';
+    clearPinInputs();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log In';
+    updateLoginBtn();
   }
 }
 
@@ -522,12 +600,12 @@ function logout() {
   if (confirm('Log out?')) {
     currentUser = null;
     localStorage.removeItem('ft_user');
-    pin = '';
-    updatePinDots();
+    clearPinInputs();
+    document.getElementById('memberDropdown').value = '';
+    selectedMember = null;
     document.getElementById('appScreen').classList.add('hidden');
     document.getElementById('loginScreen').style.display = '';
-    document.getElementById('pinArea').classList.add('hidden');
-    document.querySelectorAll('.member-btn').forEach(b => b.classList.remove('active'));
+    updateLoginBtn();
   }
 }
 
@@ -1035,7 +1113,7 @@ async function saveMember() {
     await api('POST', 'addMember', data);
     members.push(data);
     renderMembers();
-    renderLoginMembers();
+    populateMemberDropdown();
     closeModal();
     toast('Member added!', 'ok');
   } catch (e) { toast('Failed', 'err'); }
@@ -1070,7 +1148,7 @@ async function refreshAll() {
     renderQuickAdds();
     renderCategories();
     renderMembers();
-    renderLoginMembers();
+    populateMemberDropdown();
     populateCategoryDropdowns();
     loadDashboard();
     toast('Data synced!', 'ok');
