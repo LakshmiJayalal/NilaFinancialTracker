@@ -1,4 +1,4 @@
-const CACHE = 'family-tracker-v1';
+const CACHE = 'family-tracker-v2';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -16,12 +16,22 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for API calls, cache-first for app shell
   if (e.request.url.includes('script.google.com') || e.request.url.includes('macros')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    // Network only for API — don't cache API responses
+    e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ error: 'offline' }), {
+      headers: { 'Content-Type': 'application/json' }
+    })));
   } else {
+    // Cache first for app shell, then network
     e.respondWith(
-      caches.match(e.request).then(cached => cached || fetch(e.request))
+      caches.match(e.request).then(cached => {
+        const fetched = fetch(e.request).then(resp => {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return resp;
+        }).catch(() => cached);
+        return cached || fetched;
+      })
     );
   }
 });
